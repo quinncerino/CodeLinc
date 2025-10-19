@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BenefitLink - Benefits Assistant</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 3rem; border-radius: 20px; text-align: center; margin-bottom: 2rem; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .header h1 { font-size: 3rem; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 1rem; }
+        .header h3 { color: #555; margin-bottom: 0.5rem; }
+        .header p { color: #777; }
+        .main-content { display: grid; grid-template-columns: 1fr 350px; gap: 2rem; }
+        .left-panel { display: flex; flex-direction: column; gap: 1.5rem; }
+        .card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 15px; padding: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .card-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #f0f0f0; }
+        .card-header h2 { color: #333; font-size: 1.5rem; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #555; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border: 2px solid #e1e5e9; border-radius: 10px; font-size: 16px; transition: all 0.3s; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+        .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+        .checkbox-item { display: flex; align-items: center; gap: 0.5rem; padding: 10px; border-radius: 8px; transition: background 0.3s; }
+        .checkbox-item:hover { background: #f8f9ff; }
+        .checkbox-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: #667eea; }
+        .sidebar { display: flex; flex-direction: column; gap: 1.5rem; }
+        .profile-card { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 15px; padding: 2rem; }
+        .profile-item { display: flex; justify-content: space-between; margin-bottom: 0.8rem; }
+        .progress-section { margin-top: 1.5rem; }
+        .progress-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.3); border-radius: 4px; overflow: hidden; margin: 1rem 0; }
+        .progress-fill { height: 100%; background: white; border-radius: 4px; transition: width 0.5s ease; }
+        .action-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 2rem 0; }
+        .btn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 1rem 2rem; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s; font-size: 16px; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(102,126,234,0.3); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .result-card { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 15px; padding: 2rem; margin: 1rem 0; }
+        .loading { text-align: center; padding: 3rem; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 1rem; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        textarea { min-height: 120px; resize: vertical; }
+        .tips { background: linear-gradient(135deg, #e3f2fd, #bbdefb); border-radius: 15px; padding: 1.5rem; }
+        .tip-item { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; padding: 1rem; background: white; border-radius: 10px; }
+        .footer { text-align: center; margin-top: 3rem; padding: 2rem; color: rgba(255,255,255,0.8); }
+        @media (max-width: 768px) { .main-content { grid-template-columns: 1fr; } .form-grid { grid-template-columns: 1fr; } .action-buttons { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        function BenefitLink() {
+            const [formData, setFormData] = useState({
+                age: 30,
+                income: 50000,
+                familyStatus: 'Single',
+                dependents: 0,
+                healthConcerns: [],
+                financialGoals: 'Save money',
+                benefitTypes: [],
+                customPrompt: ''
+            });
+            
+            const [results, setResults] = useState({
+                recommendations: '',
+                customAnswer: '',
+                comparison: ''
+            });
+            
+            const [loading, setLoading] = useState(false);
+
+            const getFinancialAdvice = async (question) => {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                return `Based on your profile, here are personalized recommendations: ${question.substring(0, 100)}... [This would connect to your actual AI service]`;
+            };
+
+            const updateFormData = (field, value) => {
+                setFormData(prev => ({ ...prev, [field]: value }));
+            };
+
+            const toggleArrayItem = (field, item) => {
+                setFormData(prev => ({
+                    ...prev,
+                    [field]: prev[field].includes(item) 
+                        ? prev[field].filter(i => i !== item)
+                        : [...prev[field], item]
+                }));
+            };
+
+            const handleAction = async (action) => {
+                setLoading(true);
+                try {
+                    if (action === 'recommendations') {
+                        if (!formData.benefitTypes.length) {
+                            alert('Please select at least one benefit type');
+                            return;
+                        }
+                        const profile = `Age: ${formData.age}, Income: $${formData.income}, Family: ${formData.familyStatus}, Dependents: ${formData.dependents}, Health: ${formData.healthConcerns.join(', ')}, Goal: ${formData.financialGoals}`;
+                        const question = `Recommend benefits for: ${profile}. Focus on: ${formData.benefitTypes.join(', ')}`;
+                        const result = await getFinancialAdvice(question);
+                        setResults(prev => ({ ...prev, recommendations: result }));
+                    } else if (action === 'custom') {
+                        if (!formData.customPrompt) return;
+                        const result = await getFinancialAdvice(formData.customPrompt);
+                        setResults(prev => ({ ...prev, customAnswer: result }));
+                    } else if (action === 'compare') {
+                        if (formData.benefitTypes.length < 2) {
+                            alert('Please select at least 2 benefit types to compare');
+                            return;
+                        }
+                        const question = `Compare benefits for Age ${formData.age}, Income $${formData.income}: ${formData.benefitTypes.join(' vs ')}`;
+                        const result = await getFinancialAdvice(question);
+                        setResults(prev => ({ ...prev, comparison: result }));
+                    }
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const progress = [
+                formData.age > 0,
+                formData.income > 0,
+                formData.familyStatus,
+                formData.benefitTypes.length > 0
+            ].filter(Boolean).length / 4;
+
+            return (
+                <div className="app">
+                    <div className="header">
+                        <h1><i className="fas fa-briefcase"></i> BenefitLink</h1>
+                        <h3>Your Intelligent Benefits Selection Assistant</h3>
+                        <p>Get personalized recommendations tailored to your unique needs</p>
+                    </div>
+
+                    <div className="main-content">
+                        <div className="left-panel">
+                            <div className="card">
+                                <div className="card-header">
+                                    <i className="fas fa-user" style={{color: '#667eea', fontSize: '1.5rem'}}></i>
+                                    <h2>Personal Information</h2>
+                                </div>
+                                
+                                <div className="form-grid">
+                                    <div>
+                                        <div className="form-group">
+                                            <label><i className="fas fa-birthday-cake"></i> Age</label>
+                                            <input 
+                                                type="number" 
+                                                min="18" 
+                                                max="100" 
+                                                value={formData.age} 
+                                                onChange={(e) => updateFormData('age', Number(e.target.value))} 
+                                            />
+                                        </div>
+                                        
+                                        <div className="form-group">
+                                            <label><i className="fas fa-dollar-sign"></i> Annual Income</label>
+                                            <input 
+                                                type="number" 
+                                                min="0" 
+                                                step="5000" 
+                                                value={formData.income} 
+                                                onChange={(e) => updateFormData('income', Number(e.target.value))} 
+                                            />
+                                        </div>
+                                        
+                                        <div className="form-group">
+                                            <label><i className="fas fa-home"></i> Family Status</label>
+                                            <select 
+                                                value={formData.familyStatus} 
+                                                onChange={(e) => updateFormData('familyStatus', e.target.value)}
+                                            >
+                                                <option>Single</option>
+                                                <option>Married</option>
+                                                <option>Married with children</option>
+                                                <option>Single parent</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <div className="form-group">
+                                            <label><i className="fas fa-baby"></i> Number of Dependents</label>
+                                            <input 
+                                                type="number" 
+                                                min="0" 
+                                                max="10" 
+                                                value={formData.dependents} 
+                                                onChange={(e) => updateFormData('dependents', Number(e.target.value))} 
+                                            />
+                                        </div>
+                                        
+                                        <div className="form-group">
+                                            <label><i className="fas fa-target"></i> Primary Financial Goal</label>
+                                            <select 
+                                                value={formData.financialGoals} 
+                                                onChange={(e) => updateFormData('financialGoals', e.target.value)}
+                                            >
+                                                <option>Save money</option>
+                                                <option>Comprehensive coverage</option>
+                                                <option>Balance cost and coverage</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="form-group">
+                                    <label><i className="fas fa-heartbeat"></i> Health Priorities</label>
+                                    <div className="checkbox-grid">
+                                        {['Preventive care', 'Chronic conditions', 'Mental health', 'Dental', 'Vision'].map(concern => (
+                                            <div key={concern} className="checkbox-item">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={formData.healthConcerns.includes(concern)}
+                                                    onChange={() => toggleArrayItem('healthConcerns', concern)}
+                                                />
+                                                <span>{concern}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="card">
+                                <div className="card-header">
+                                    <i className="fas fa-clipboard-list" style={{color: '#667eea', fontSize: '1.5rem'}}></i>
+                                    <h2>Available Benefits</h2>
+                                </div>
+                                
+                                <div className="checkbox-grid">
+                                    {['Health Insurance', 'Dental', 'Vision', 'Employee Assistance Program', 'Caregiver Resources', 'Tutoring Support'].map(benefit => (
+                                        <div key={benefit} className="checkbox-item">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={formData.benefitTypes.includes(benefit)}
+                                                onChange={() => toggleArrayItem('benefitTypes', benefit)}
+                                            />
+                                            <span>{benefit}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="card">
+                                <div className="card-header">
+                                    <i className="fas fa-comments" style={{color: '#667eea', fontSize: '1.5rem'}}></i>
+                                    <h2>Custom Questions</h2>
+                                </div>
+                                
+                                <textarea 
+                                    placeholder="Ask any specific question about benefits (e.g., What's the difference between HMO and PPO plans?)"
+                                    value={formData.customPrompt}
+                                    onChange={(e) => updateFormData('customPrompt', e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="sidebar">
+                            <div className="profile-card">
+                                <h3><i className="fas fa-chart-pie"></i> Your Profile</h3>
+                                <div style={{marginTop: '1rem'}}>
+                                    <div className="profile-item">
+                                        <span>Age:</span>
+                                        <strong>{formData.age}</strong>
+                                    </div>
+                                    <div className="profile-item">
+                                        <span>Income:</span>
+                                        <strong>${formData.income.toLocaleString()}</strong>
+                                    </div>
+                                    <div className="profile-item">
+                                        <span>Family:</span>
+                                        <strong>{formData.familyStatus}</strong>
+                                    </div>
+                                    <div className="profile-item">
+                                        <span>Dependents:</span>
+                                        <strong>{formData.dependents}</strong>
+                                    </div>
+                                    <div className="profile-item">
+                                        <span>Goal:</span>
+                                        <strong>{formData.financialGoals}</strong>
+                                    </div>
+                                </div>
+                                
+                                <div className="progress-section">
+                                    <h4><i className="fas fa-check-circle"></i> Completion Status</h4>
+                                    <div className="progress-bar">
+                                        <div className="progress-fill" style={{width: `${progress * 100}%`}}></div>
+                                    </div>
+                                    <p>Profile: {Math.round(progress * 100)}% complete</p>
+                                </div>
+                            </div>
+
+                            <div className="tips">
+                                <h3><i className="fas fa-lightbulb"></i> Tips</h3>
+                                <div className="tip-item">
+                                    <i className="fas fa-money-bill-wave" style={{color: '#667eea'}}></i>
+                                    <span>Consider your budget and family needs</span>
+                                </div>
+                                <div className="tip-item">
+                                    <i className="fas fa-hospital" style={{color: '#667eea'}}></i>
+                                    <span>Prioritize health coverage based on medical history</span>
+                                </div>
+                                <div className="tip-item">
+                                    <i className="fas fa-chart-bar" style={{color: '#667eea'}}></i>
+                                    <span>Review all options before deciding</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="action-buttons">
+                        <button className="btn" onClick={() => handleAction('recommendations')} disabled={loading}>
+                            <i className="fas fa-bullseye"></i> Get Recommendations
+                        </button>
+                        <button className="btn" onClick={() => handleAction('custom')} disabled={loading}>
+                            <i className="fas fa-question-circle"></i> Ask Question
+                        </button>
+                        <button className="btn" onClick={() => handleAction('compare')} disabled={loading}>
+                            <i className="fas fa-balance-scale"></i> Compare Benefits
+                        </button>
+                    </div>
+
+                    {loading && (
+                        <div className="loading">
+                            <div className="spinner"></div>
+                            <p>Analyzing your profile and generating personalized recommendations...</p>
+                        </div>
+                    )}
+
+                    {results.recommendations && (
+                        <div className="result-card">
+                            <h2><i className="fas fa-bullseye"></i> Your Personalized Recommendations</h2>
+                            <p>{results.recommendations}</p>
+                        </div>
+                    )}
+
+                    {results.customAnswer && (
+                        <div className="card">
+                            <h3><i className="fas fa-lightbulb"></i> Answer to Your Question</h3>
+                            <div style={{background: '#f8f9ff', padding: '1rem', borderRadius: '8px', margin: '1rem 0'}}>
+                                <strong>Your Question:</strong> <em>"{formData.customPrompt}"</em>
+                            </div>
+                            <p>{results.customAnswer}</p>
+                        </div>
+                    )}
+
+                    {results.comparison && (
+                        <div className="card">
+                            <h3><i className="fas fa-balance-scale"></i> Benefits Comparison</h3>
+                            <p>{results.comparison}</p>
+                        </div>
+                    )}
+
+                    <div className="footer">
+                        <p><i className="fas fa-briefcase"></i> BenefitLink - Making benefits selection simple and personalized</p>
+                        <p>Need help? Contact our support team or check our FAQ section.</p>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<BenefitLink />, document.getElementById('root'));
+    </script>
+</body>
+</html>
